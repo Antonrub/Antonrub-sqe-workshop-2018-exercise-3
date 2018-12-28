@@ -13,23 +13,22 @@ let code_to_eval = '';
 const init = () => {
     args = [[],[]];
     code_to_eval = '';
-}
+};
 
 const parse_arguments = (code, input) => {
     if (input == '') {
         args = [[], []];
     }
     else {
-        //let parsed_args = esprima.parseScript(input);
         let parsed_args = input.split(',');
         let parsed_func = esprima.parseScript(code);
 
         if (parsed_args.length === 1) {
-            args[0][0] = stringify_identifier_expression([[],[]], parsed_func.body[parsed_func.body.length - 1].params[0]);
+            args[0][0] = parsed_func.body[parsed_func.body.length - 1].params[0].name;
             args[1][0] = parsed_args[0];
         } else {
             for (let i = 0; i < parsed_args.length; i++) {
-                args[0][i] = stringify_identifier_expression([[],[]], parsed_func.body[parsed_func.body.length - 1].params[i]);
+                args[0][i] = parsed_func.body[parsed_func.body.length - 1].params[i].name;
                 args[1][i] = parsed_args[i];
             }
         }
@@ -50,54 +49,6 @@ const parseGlobals = (code) => {
     }
 };
 
-// const binary_exp_to_string = (env, parsedObject) => {
-//     let result = '';
-//     let left = stringifyExpression[parsedObject.left.type](env, parsedObject.left);
-//     let right = stringifyExpression[parsedObject.right.type](env, parsedObject.right);
-//     if (parsedObject.operator == '*' || parsedObject.operator == '/'){
-//         result = left.length > 1 ? result + '(' + left + ')' : result + left;
-//         result = result + parsedObject.operator;
-//         result = right.length > 1 ? result + '(' + right + ')' : result + right;
-//     }
-//     else
-//         result = result + left + parsedObject.operator + right;
-//     return result;
-// };
-// const unary_exp_to_string = (env, parsedObject) => {
-//     return parsedObject.operator + stringifyExpression[parsedObject.argument.type](env, parsedObject.argument);
-// };
-
-// const member_exp_to_string = (env, parsedObject) => {
-//     return '' + parsedObject.object.name + '[' + stringifyExpression[parsedObject.property.type](env, parsedObject.property) + ']';
-// };
-
-// const stringify_binary_expression = (env, parsedObject) => {
-//     return binary_exp_to_string(env, parsedObject);
-// };
-// const stringify_literal_expression = (env, parsedObject) => {
-//     return parsedObject.raw;
-// };
-const stringify_identifier_expression = (env, parsedObject) => {
-    // if (args[0].includes(parsedObject.name))
-    //     return parsedObject.name;
-    // else {
-        let idx = env[0].lastIndexOf(parsedObject.name);
-        return idx == -1 ? parsedObject.name : env[1][idx];
-    // }
-};
-// const stringify_member_expression = (env, parsedObject) => {
-//     return member_exp_to_string(env, parsedObject);
-// };
-// const stringify_unary_expression = (env, parsedObject) => {
-//     return unary_exp_to_string(env, parsedObject);
-// };
-// const stringify_array_expression = (env, parsedObject) => {
-//     let result = '[';
-//     for (let i = 0; i < parsedObject.elements.length - 1; i++)
-//         result = result + parsedObject.elements[i].raw + ',';
-//     result = result + parsedObject.elements[parsedObject.elements.length - 1].raw + ']';
-//     return result;
-// };
 
 const stringifyExpression = {
     'BinaryExpression' : true,
@@ -201,21 +152,21 @@ const parseCode = (codeToParse, argumentsToUse) => {
 };
 
 
-// console.log(parseCode( 'function foo(x, y, z){\n' +
-//     '    let a = x + 1;\n' +
-//     '    let b = a + y;\n' +
-//     '    let c = 0;\n' +
-//     '    \n' +
-//     '    if (b < z) {\n' +
-//     '        c = c + 5;\n' +
-//     '    } else if (b < z * 2) {\n' +
-//     '        c = c + x + 5;\n' +
-//     '    } else {\n' +
-//     '        c = c + z + 5;\n' +
-//     '    }\n' +
-//     '    \n' +
-//     '    return c;\n' +
-//     '}\n', '1, 2, 3'));
+console.log(parseCode( 'function foo(x, y, z){\n' +
+    '    let a = x + 1;\n' +
+    '    let b = a + y;\n' +
+    '    let c = 0;\n' +
+    '    \n' +
+    '    if (b < z) {\n' +
+    '        c = c + 5;\n' +
+    '    } else if (b < z * 2) {\n' +
+    '        c = c + x + 5;\n' +
+    '    } else {\n' +
+    '        c = c + z + 5;\n' +
+    '    }\n' +
+    '    \n' +
+    '    return c;\n' +
+    '}\n', '1, 2, 3'));
 
 // console.log(parseCode( 'function foo(x, y, z){\n' +
 //     '   let a = x + 1;\n' +
