@@ -2,10 +2,7 @@ import * as esprima from 'esprima';
 import * as escodegen from 'escodegen';
 import * as format from 'string-format';
 import * as esgraph from 'esgraph';
-// const esgraph = require('esgraph');
-// const esprima = require('esprima');
-// const escodegen = require('escodegen');
-// const format = require('string-format');
+
 
 let args = [[],[]];
 let code_to_eval = '';
@@ -15,12 +12,27 @@ const init = () => {
     code_to_eval = '';
 };
 
+
+const splitArguments = (args) => {
+    if (args.includes('[')){
+        let parsed_args = esprima.parseScript(args).body[0].expression;
+        if (parsed_args.expressions === undefined){
+            return [escodegen.generate(parsed_args)];
+        }
+        else{
+            return parsed_args.expressions.map((x) => escodegen.generate(x));
+        }
+    }
+    else
+        return args.split(',');
+};
+
 const parse_arguments = (code, input) => {
-    if (input == '') {
+    if (input === '') {
         args = [[], []];
     }
     else {
-        let parsed_args = input.split(',');
+        let parsed_args = splitArguments(input);
         let parsed_func = esprima.parseScript(code);
 
         if (parsed_args.length === 1) {
@@ -49,7 +61,6 @@ const parseGlobals = (code) => {
     }
 };
 
-
 const stringifyExpression = {
     'BinaryExpression' : true,
     'Literal' : true,
@@ -57,7 +68,6 @@ const stringifyExpression = {
     'MemberExpression' : true,
     'UnaryExpression' : true,
     'ArrayExpression' : true};
-
 
 const cleanExceptionEntryExit = (code) => {
     let splitted_code = code.trim().split('\n');
@@ -67,12 +77,12 @@ const cleanExceptionEntryExit = (code) => {
 };
 
 const findNextVerticeIndex = (from, vertices, edges, bool) => {
-    let member_edges = edges.filter((x) => x[0] == from);
-    let bool_edge = member_edges.filter((x) => x[3] == bool);
-    return vertices.indexOf(vertices.filter((x) => x[0] == bool_edge[0][2])[0]);
+    let member_edges = edges.filter((x) => x[0] === from);
+    let bool_edge = member_edges.filter((x) => x[3] === bool);
+    return vertices.indexOf(vertices.filter((x) => x[0] === bool_edge[0][2])[0]);
 };
 const findEdgeIndex =(from, edges) => {
-    let member_edges = edges.filter((x) => x[0] == from);
+    let member_edges = edges.filter((x) => x[0] === from);
     return edges.indexOf(member_edges[0]);
 };
 
@@ -87,7 +97,7 @@ const findVerticesToColor = (vertices, vertices_types, edges) =>{
         }
         else{
             let vertice_edge_index = findEdgeIndex(vertices[i][0], edges);
-            i = vertices.indexOf(vertices.filter((x) => x[0] == edges[vertice_edge_index][2])[0]) - 1;
+            i = vertices.indexOf(vertices.filter((x) => x[0] === edges[vertice_edge_index][2])[0]) - 1;
         }
     }
 };
@@ -140,7 +150,7 @@ const parseCode = (codeToParse, argumentsToUse) => {
     let graphed_input = esgraph.dot(cfg, {counter:0, source: codeToParse});
     graphed_input = cleanExceptionEntryExit(graphed_input);
     let edges = graphed_input.filter((x) => x.includes('->')).map((x) => x.split(' '));
-    edges = edges.map((x) => x[3] == '[]' ? x : [x[0], x[1], x[2], x[3].slice(x[3].indexOf('"') + 1, x[3].length - 2)]); //clean "label="
+    edges = edges.map((x) => x[3] === '[]' ? x : [x[0], x[1], x[2], x[3].slice(x[3].indexOf('"') + 1, x[3].length - 2)]); //clean "label="
     let vertices = graphed_input.filter((x) => !x.includes('->'));
     vertices = vertices.map((x) => [x.slice(0, x.indexOf(' ')), x.slice(x.indexOf(' ') + 1)]); //split vertice name with its label
     vertices = vertices.map((x) => [x[0], x[1].slice(x[1].indexOf('"') + 1, x[1].length - 2)]); //clean "label="
@@ -152,90 +162,4 @@ const parseCode = (codeToParse, argumentsToUse) => {
 };
 
 
-console.log(parseCode( 'function foo(x, y, z){\n' +
-    '    let a = x + 1;\n' +
-    '    let b = a + y;\n' +
-    '    let c = 0;\n' +
-    '    \n' +
-    '    if (b < z) {\n' +
-    '        c = c + 5;\n' +
-    '    } else if (b < z * 2) {\n' +
-    '        c = c + x + 5;\n' +
-    '    } else {\n' +
-    '        c = c + z + 5;\n' +
-    '    }\n' +
-    '    \n' +
-    '    return c;\n' +
-    '}\n', '1, 2, 3'));
-
-// console.log(parseCode( 'function foo(x, y, z){\n' +
-//     '   let a = x + 1;\n' +
-//     '   let b = a + y;\n' +
-//     '   let c = 0;\n' +
-//     '   \n' +
-//     '   while (a < z) {\n' +
-//     '       c = a + b;\n' +
-//     '       a++;\n' +
-//     '   }\n' +
-//     '   \n' +
-//     '   return z;\n' +
-//     '}\n', '1, 2, 3'));
-
-// console.log(parseCode( 'let t = [true];\n' +
-//     'let f = [false];\n' +
-//     'function goo (){\n' +
-//     '   let q = 0;\n' +
-//     '   while(f[0]){\n' +
-//     '      q++;\n' +
-//     '   }\n' +
-//     '   return t[0];\n' +
-//     '}', ''));
-
-// console.log(parseCode( 'function f(x , y, z){\n' +
-//     '\n' +
-//     '    if(true)\n' +
-//     '    {\n' +
-//     '        if(false)\n' +
-//     '        {\n' +
-//     '            let b = 1;\n' +
-//     '            return b;\n' +
-//     '        }\n' +
-//     '        else if(false){\n' +
-//     '            let a = 1;\n' +
-//     '            let b = false;\n' +
-//     '            while(b)\n' +
-//     '            {\n' +
-//     '                console.log(123);\n' +
-//     '            }\n' +
-//     '        } else{\n' +
-//     '            let b = 3;\n' +
-//
-//     '        }\n' +
-//     '    }\n' +
-//     '    let t = 0;\n' +
-//     '    while(t < 3 )\n' +
-//     '    {\n' +
-//     '        if(true){\n' +
-//     '            t = t + 1;                   \n' +
-//     '        }else if(false)\n' +
-//     '        {\n' +
-//     '            t = t - 1;\n' +
-//     '        }else{\n' +
-//     '            t = t - 1;\n' +
-//     '        }\n' +
-//     '    }\n' +
-//     '    \n' +
-//     '    if(false)\n' +
-//     '    {\n' +
-//     '        let c = 10;\n' +
-//     '        return c;\n' +
-//     '    }else{\n' +
-//     '        if(true){\n' +
-//     '            return 11111;\n' +
-//     '        }\n' +
-//     '    }\n' +
-//     '}', '1 , 2, 111'));
-
-
-// module.exports = (parseCode);
-export {parseCode};
+export {parseCode, paintAndShapeVertices, mapInputTypes, createInputTypes, cleanExceptionEntryExit};
